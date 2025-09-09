@@ -7,7 +7,6 @@ on:
         description: "每个关键词最多抓取多少条（测试用）"
         required: false
         default: "5"
-  # 如需定时再打开
   # schedule:
   #   - cron: "15 7 * * *"
 
@@ -27,7 +26,7 @@ jobs:
       - name: Install uv
         run: pip install -U uv
 
-      # ★ 关键：先创建 venv，再装依赖（requirements 里记得加 supabase）
+      # 先创建 venv，再装依赖（requirements 里要包含 supabase）
       - name: Create venv & install deps
         run: |
           uv venv
@@ -47,37 +46,36 @@ jobs:
           test -s $RUNNER_TEMP/xhs_cookies.json
           echo "Cookie head preview:"
           head -n 5 $RUNNER_TEMP/xhs_cookies.json
-      
+
       - name: Verify proxy works
         env:
-          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}          # 可留空
-          XHS_PROXY_ENDPOINT: ${{ secrets.XHS_PROXY_ENDPOINT }}# 例如 1.2.3.4:15818
+          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}            # 可留空
+          XHS_PROXY_ENDPOINT: ${{ secrets.XHS_PROXY_ENDPOINT }}  # 例如 1.2.3.4:15818
           XHS_PROXY_USER: ${{ secrets.XHS_PROXY_USER }}
           XHS_PROXY_PASS: ${{ secrets.XHS_PROXY_PASS }}
         run: |
           echo "Check proxy…"
           cat > check_proxy.py <<'PY'
-      import os, requests
-      url = os.environ.get("XHS_PROXY_URL", "").strip()
-      hp  = os.environ.get("XHS_PROXY_ENDPOINT", "").strip()
-      usr = os.environ.get("XHS_PROXY_USER", "").strip()
-      pwd = os.environ.get("XHS_PROXY_PASS", "").strip()
-      if not url:
-          if hp and usr and pwd:
-              url = f"http://{usr}:{pwd}@{hp}"
-          elif hp:
-              url = f"http://{hp}"
-      if not url:
-          print("No proxy configured; skip.")
-          raise SystemExit(0)
-      proxies = {"http": url, "https": url}
-      print("Proxy:", url[:12] + "***")
-      r = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=20)
-      r.raise_for_status()
-      print("Egress IP:", r.json().get("ip"))
-      PY
+          import os, requests
+          url = os.environ.get("XHS_PROXY_URL", "").strip()
+          hp  = os.environ.get("XHS_PROXY_ENDPOINT", "").strip()
+          usr = os.environ.get("XHS_PROXY_USER", "").strip()
+          pwd = os.environ.get("XHS_PROXY_PASS", "").strip()
+          if not url:
+              if hp and usr and pwd:
+                  url = f"http://{usr}:{pwd}@{hp}"
+              elif hp:
+                  url = f"http://{hp}"
+          if not url:
+              print("No proxy configured; skip.")
+              raise SystemExit(0)
+          proxies = {"http": url, "https": url}
+          print("Proxy:", url[:12] + "***")
+          r = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=20)
+          r.raise_for_status()
+          print("Egress IP:", r.json().get("ip"))
+          PY
           uv run python check_proxy.py
-
 
       - name: Gentle crawl (localized env + proxy)
         env:
@@ -98,7 +96,6 @@ jobs:
         run: |
           xvfb-run -a uv run python tools/run_with_env.py
 
-
       - name: Ingest to Supabase
         if: success()
         env:
@@ -107,7 +104,6 @@ jobs:
         run: |
           uv run python ingest_to_supabase.py
 
-      # 可选：把 sqlite 产物打包下载，便于验证
       - name: Upload sqlite artifact
         if: always()
         uses: actions/upload-artifact@v4
