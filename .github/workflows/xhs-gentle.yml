@@ -48,12 +48,16 @@ jobs:
           echo "Cookie head preview:"
           head -n 5 $RUNNER_TEMP/xhs_cookies.json
 
-      - name: Gentle crawl (uses throttle_xhs.py)
+      - name: Gentle crawl
         env:
           XHS_COOKIES_PATH: ${{ runner.temp }}/xhs_cookies.json
           XHS_SAVE: sqlite
           XHS_LOGIN_TYPE: cookie
           PW_CHROMIUM_NO_SANDBOX: 1
+          # ← 用你真实浏览器指纹
+          XHS_UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+          XHS_LOCALE: "en-US"
+          XHS_TIMEZONE: "America/New_York"
         run: |
           xvfb-run -a uv run python throttle_xhs.py --max_items ${{ github.event.inputs.max_items }}
 
