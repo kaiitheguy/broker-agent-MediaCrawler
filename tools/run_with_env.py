@@ -2,18 +2,18 @@
 import os, sys, subprocess, textwrap
 
 def main():
-    # 让 MediaCrawler 只抓 N 条（来自 CI 输入）
+    # 让爬虫只抓 N 条（来自 CI 输入）
     max_items = os.environ.get("MAX_ITEMS")
     if max_items:
         os.environ["XHS_SPIDER_LIMIT"] = max_items
 
-    # 默认指纹（可被环境变量覆盖）
+    # 默认指纹（可被 env 覆盖）
     os.environ.setdefault("XHS_UA", "")
     os.environ.setdefault("XHS_LOCALE", "en-US")
     os.environ.setdefault("XHS_TIMEZONE", "America/New_York")
     os.environ.setdefault("XHS_PROXY_URL", "")  # 可为空
 
-    # 用 sitecustomize 猴补 Playwright 的 launch_persistent_context
+    # 通过 sitecustomize 猴补 Playwright
     sitecustomize = textwrap.dedent(r"""
     import os
     from playwright.async_api import chromium
@@ -31,7 +31,6 @@ def main():
 
         kwargs.setdefault("locale", os.environ.get("XHS_LOCALE", "en-US"))
         kwargs.setdefault("timezone_id", os.environ.get("XHS_TIMEZONE", "America/New_York"))
-
         return await _orig(*args, **kwargs)
 
     chromium.launch_persistent_context = _patched_launch_persistent_context
@@ -40,7 +39,7 @@ def main():
     with open("sitecustomize.py", "w", encoding="utf-8") as f:
         f.write(sitecustomize)
 
-    # 跑你的节流脚本
+    # 执行你现有的节流脚本
     env = os.environ.copy()
     subprocess.check_call([sys.executable, "throttle_xhs.py"], env=env)
 

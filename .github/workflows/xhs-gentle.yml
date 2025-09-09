@@ -48,19 +48,34 @@ jobs:
           echo "Cookie head preview:"
           head -n 5 $RUNNER_TEMP/xhs_cookies.json
 
-      - name: Gentle crawl (localized env)
+      - name: Verify proxy works
+        if: ${{ secrets.XHS_PROXY_URL != '' }}
+        env:
+          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
+        run: |
+          cat > check_proxy.py <<'PY'
+import os, requests
+p = os.environ["XHS_PROXY_URL"]
+proxies = {"http": p, "https": p}
+ip = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=15).json()["ip"]
+print("Proxy egress IP:", ip)
+PY
+          uv run python check_proxy.py
+
+
+      - name: Gentle crawl (localized env + proxy)
         env:
           XHS_COOKIES_PATH: ${{ runner.temp }}/xhs_cookies.json
           XHS_SAVE: sqlite
           XHS_LOGIN_TYPE: cookie
           PW_CHROMIUM_NO_SANDBOX: 1
-          # ← 用你本机浏览器的指纹（你刚提供的）
+          # 用你本机浏览器的指纹
           XHS_UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
           XHS_LOCALE: "en-US"
           XHS_TIMEZONE: "America/New_York"
-          # （可选，强烈建议）高质量代理，放在 Secrets：XHS_PROXY_URL
+          # 代理（在 Secrets 里配置）
           XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
-          # 测试条数沿用 workflow_dispatch 的输入
+          # 从 workflow_dispatch inputs 传测试条数
           MAX_ITEMS: ${{ github.event.inputs.max_items }}
         run: |
           xvfb-run -a uv run python tools/run_with_env.py
