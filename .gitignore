@@ -174,3 +174,6 @@ docs/.vitepress/cache
 # other gitignore
 .venv
 .refer
+
+xhs_user_data.tgz
+xhs_user_data.tgz.b64

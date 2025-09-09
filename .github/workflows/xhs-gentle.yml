@@ -43,27 +43,38 @@ jobs:
           test -s $RUNNER_TEMP/xhs_cookies.json
 
       # ★ 新增：从快代理 API 动态提取一个 IP
-      - name: Fetch proxy IP from KDL API
+            - name: Fetch proxy IP from KDL API
         id: fetch_proxy
+        env:
+          KDL_SECRET_ID: ${{ secrets.KDL_SECRET_ID }}
+          KDL_SECRET_KEY: ${{ secrets.KDL_SECRET_KEY }}
         run: |
           uv run python <<'PY'
-          import requests, os, sys
+          import os, sys, requests
           api = "https://dps.kdlapi.com/api/getdps"
+          sid = os.environ.get("KDL_SECRET_ID", "").strip()
+          sk  = os.environ.get("KDL_SECRET_KEY", "").strip()
+          if not sid or not sk:
+              print("KDL secrets missing"); sys.exit(1)
           params = {
-              "secret_id": "oy9f5410vku9p0a2jxpj",
-              "signature": "4n7d07j8v1oyaxvlv08e36o5p3zh2odw",
+              "secret_id": sid,
+              "signature": sk,   # 这里 signature 就是 SecretKey 本身（这条 API 不需要 MD5）
               "num": 1,
+              "sep": 1,
           }
-          resp = requests.get(api, params=params, timeout=10)
-          txt = resp.text.strip()
+          r = requests.get(api, params=params, timeout=12)
+          txt = r.text.strip()
           print("KDL response:", txt)
-          if ":" not in txt:
-              print("Failed to fetch proxy:", txt)
+          # 成功时通常是 "IP:PORT"
+          if ":" not in txt or "{" in txt:
+              print("Failed to fetch proxy endpoint from KDL.")
               sys.exit(1)
           ip_port = txt.splitlines()[0].strip()
           with open(os.environ["GITHUB_ENV"], "a") as f:
               f.write(f"XHS_PROXY_ENDPOINT={ip_port}\n")
+          print("Got proxy endpoint:", ip_port)
           PY
+
 
       - name: Gentle crawl (localized env + proxy)
         env:
