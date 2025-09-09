@@ -50,25 +50,34 @@ jobs:
       
       - name: Verify proxy works
         env:
-          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
+          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}          # 可留空
+          XHS_PROXY_ENDPOINT: ${{ secrets.XHS_PROXY_ENDPOINT }}# 例如 1.2.3.4:15818
+          XHS_PROXY_USER: ${{ secrets.XHS_PROXY_USER }}
+          XHS_PROXY_PASS: ${{ secrets.XHS_PROXY_PASS }}
         run: |
-          if [ -z "$XHS_PROXY_URL" ]; then
-            echo "No proxy secret provided; skip proxy check."
-            exit 0
-          fi
-          echo "Proxy: $XHS_PROXY_URL"
+          echo "Check proxy…"
           cat > check_proxy.py <<'PY'
-          import os, requests, sys
-          p = os.environ.get("XHS_PROXY_URL", "")
-          if not p:
-              print("Proxy not set; skipping.")
-              sys.exit(0)
-          proxies = {"http": p, "https": p}
-          r = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=15)
-          r.raise_for_status()
-          print("Egress IP:", r.json().get("ip"))
-          PY
+      import os, requests
+      url = os.environ.get("XHS_PROXY_URL", "").strip()
+      hp  = os.environ.get("XHS_PROXY_ENDPOINT", "").strip()
+      usr = os.environ.get("XHS_PROXY_USER", "").strip()
+      pwd = os.environ.get("XHS_PROXY_PASS", "").strip()
+      if not url:
+          if hp and usr and pwd:
+              url = f"http://{usr}:{pwd}@{hp}"
+          elif hp:
+              url = f"http://{hp}"
+      if not url:
+          print("No proxy configured; skip.")
+          raise SystemExit(0)
+      proxies = {"http": url, "https": url}
+      print("Proxy:", url[:12] + "***")
+      r = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=20)
+      r.raise_for_status()
+      print("Egress IP:", r.json().get("ip"))
+      PY
           uv run python check_proxy.py
+
 
       - name: Gentle crawl (localized env + proxy)
         env:
@@ -76,16 +85,19 @@ jobs:
           XHS_SAVE: sqlite
           XHS_LOGIN_TYPE: cookie
           PW_CHROMIUM_NO_SANDBOX: 1
-          # 用你本机浏览器的指纹
+          # 你的本机指纹
           XHS_UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
           XHS_LOCALE: "en-US"
           XHS_TIMEZONE: "America/New_York"
-          # 代理（在 Secrets 里配置）
-          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
-          # 从 workflow_dispatch inputs 传测试条数
+          # 代理（任选其一：URL 或三段式）
+          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}              # 可留空
+          XHS_PROXY_ENDPOINT: ${{ secrets.XHS_PROXY_ENDPOINT }}    # 填 IP:PORT
+          XHS_PROXY_USER: ${{ secrets.XHS_PROXY_USER }}
+          XHS_PROXY_PASS: ${{ secrets.XHS_PROXY_PASS }}
           MAX_ITEMS: ${{ github.event.inputs.max_items }}
         run: |
           xvfb-run -a uv run python tools/run_with_env.py
+
 
       - name: Ingest to Supabase
         if: success()
