@@ -54,12 +54,12 @@ jobs:
           XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
         run: |
           cat > check_proxy.py <<'PY'
-import os, requests
-p = os.environ["XHS_PROXY_URL"]
-proxies = {"http": p, "https": p}
-ip = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=15).json()["ip"]
-print("Proxy egress IP:", ip)
-PY
+          import os, requests
+          p = os.environ["XHS_PROXY_URL"]
+          proxies = {"http": p, "https": p}
+          ip = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=15).json()["ip"]
+          print("Proxy egress IP:", ip)
+          PY
           uv run python check_proxy.py
 
 
