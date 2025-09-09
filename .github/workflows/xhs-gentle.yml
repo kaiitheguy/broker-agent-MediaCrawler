@@ -47,6 +47,14 @@ jobs:
           echo "Cookie head preview:"
           head -n 5 $RUNNER_TEMP/xhs_cookies.json
 
+      - name: Show GitHub Runner Public IP
+        run: |
+          echo "Runner 公网 IP:"
+          curl -s https://api.ipify.org
+          echo
+          echo "Runner 详细 IP 信息:"
+          curl -s http://ipinfo.io
+
       - name: Verify proxy works
         env:
           XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}            # 可留空
@@ -83,18 +91,18 @@ jobs:
           XHS_SAVE: sqlite
           XHS_LOGIN_TYPE: cookie
           PW_CHROMIUM_NO_SANDBOX: 1
-          # 你的本机指纹
           XHS_UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
           XHS_LOCALE: "en-US"
           XHS_TIMEZONE: "America/New_York"
-          # 代理（任选其一：URL 或三段式）
-          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}              # 可留空
-          XHS_PROXY_ENDPOINT: ${{ secrets.XHS_PROXY_ENDPOINT }}    # 填 IP:PORT
+          # 仅分段式（URL 为空也没关系）
+          XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
+          XHS_PROXY_ENDPOINT: ${{ secrets.XHS_PROXY_ENDPOINT }}
           XHS_PROXY_USER: ${{ secrets.XHS_PROXY_USER }}
           XHS_PROXY_PASS: ${{ secrets.XHS_PROXY_PASS }}
           MAX_ITEMS: ${{ github.event.inputs.max_items }}
         run: |
           xvfb-run -a uv run python tools/run_with_env.py
+
 
       - name: Ingest to Supabase
         if: success()
