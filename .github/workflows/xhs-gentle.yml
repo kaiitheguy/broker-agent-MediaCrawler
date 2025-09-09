@@ -26,7 +26,7 @@ jobs:
         run: pip install -U uv
 
       - name: Sync deps
-        run: uv sync
+        run: uv pip install -r requirements.txt
 
       - name: Install Playwright
         run: uv run python -m playwright install --with-deps

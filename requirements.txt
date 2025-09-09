@@ -19,3 +19,4 @@ pyexecjs==1.5.1
 pandas==2.2.3
 aiosqlite==0.21.0
 pyhumps==3.8.0
+supabase
