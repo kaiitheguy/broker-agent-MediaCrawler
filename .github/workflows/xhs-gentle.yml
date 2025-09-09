@@ -1,0 +1,48 @@
+name: xhs-gentle
+on:
+  schedule:
+    - cron: "15 7 * * *"   # 每天 07:15 UTC
+  workflow_dispatch: {}     # 手动触发
+
+jobs:
+  crawl-and-ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python & uv
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install -U uv
+
+      - name: Sync deps
+        run: uv sync
+
+      - name: Install Playwright
+        run: uv run python -m playwright install --with-deps
+
+      - name: Restore cookie file from secret
+        env:
+          XHS_COOKIES_B64: ${{ secrets.XHS_COOKIES_B64 }}
+        run: |
+          echo "$XHS_COOKIES_B64" | base64 -d > $RUNNER_TEMP/xhs_cookies.json
+          test -s $RUNNER_TEMP/xhs_cookies.json
+
+      - name: Gentle crawl
+        env:
+          XHS_COOKIES_PATH: ${{ runner.temp }}/xhs_cookies.json
+          XHS_SAVE: sqlite
+          XHS_LOGIN_TYPE: cookie
+        run: |
+          uv run python throttle_xhs.py
+
+      - name: Ingest to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          uv run python ingest_to_supabase.py

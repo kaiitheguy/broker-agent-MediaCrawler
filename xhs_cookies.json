@@ -1,0 +1,32 @@
+[
+  {
+    "name": "a1",
+    "value": "1992bdd290d86nqjec6slr3k0vugvekvbsdfv37nq30000231961",
+    "domain": ".xiaohongshu.com",
+    "path": "/"
+  },
+  {
+    "name": "web_session",
+    "value": "040069b1d64103563f22ad3c8a3a4b5a2d3233",
+    "domain": ".xiaohongshu.com",
+    "path": "/"
+  },
+  {
+    "name": "webId",
+    "value": "ffd0048a21ed17dcaa8ea6295e637f5c",
+    "domain": ".xiaohongshu.com",
+    "path": "/"
+  },
+  {
+    "name": "webBuild",
+    "value": "4.79.0",
+    "domain": ".xiaohongshu.com",
+    "path": "/"
+  },
+  {
+    "name": "xsecappid",
+    "value": "xhs-pc-web",
+    "domain": ".xiaohongshu.com",
+    "path": "/"
+  }
+]
