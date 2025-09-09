@@ -47,20 +47,23 @@ jobs:
         id: fetch_proxy
         run: |
           uv run python <<'PY'
-          import requests, time, hashlib, os
-          order_id = "995738837791666"
-          secret_key = "4n7d07j8v1oyaxvlv08e36o5p3zh2odw"
-          ts = int(time.time())
-          sign_str = f"orderId={order_id}&secret={secret_key}&t={ts}"
-          signature = hashlib.md5(sign_str.encode()).hexdigest()
-          url = f"https://dps.kdlapi.com/api/getdps?orderId={order_id}&signature={signature}&num=1&pt=1&sep=1&t={ts}"
-          resp = requests.get(url, timeout=10)
-          ip = resp.text.strip()
-          print("Got proxy:", ip)
+          import requests, os, sys
+          api = "https://dps.kdlapi.com/api/getdps"
+          params = {
+              "secret_id": "oy9f5410vku9p0a2jxpj",
+              "signature": "4n7d07j8v1oyaxvlv08e36o5p3zh2odw",
+              "num": 1,
+          }
+          resp = requests.get(api, params=params, timeout=10)
+          txt = resp.text.strip()
+          print("KDL response:", txt)
+          if ":" not in txt:
+              print("Failed to fetch proxy:", txt)
+              sys.exit(1)
+          ip_port = txt.splitlines()[0].strip()
           with open(os.environ["GITHUB_ENV"], "a") as f:
-              f.write(f"XHS_PROXY_ENDPOINT={ip}\n")
+              f.write(f"XHS_PROXY_ENDPOINT={ip_port}\n")
           PY
-
 
       - name: Gentle crawl (localized env + proxy)
         env:
