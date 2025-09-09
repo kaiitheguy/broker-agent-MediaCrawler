@@ -1,13 +1,15 @@
 name: xhs-gentle
+
 on:
   workflow_dispatch:
     inputs:
       max_items:
-        description: "每个关键词最多抓取多少条"
+        description: "每个关键词最多抓取多少条（测试用）"
         required: false
         default: "5"
+  # 如需定时再打开
   # schedule:
-  #   - cron: "15 7 * * *"   # 定时任务需要时再开
+  #   - cron: "15 7 * * *"
 
 jobs:
   crawl-and-ingest:
@@ -17,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python & uv
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -25,10 +27,13 @@ jobs:
       - name: Install uv
         run: pip install -U uv
 
-      - name: Sync deps
-        run: uv pip install -r requirements.txt
+      # ★ 关键：先创建 venv，再装依赖（requirements 里记得加 supabase）
+      - name: Create venv & install deps
+        run: |
+          uv venv
+          uv pip install -r requirements.txt
 
-      - name: Install Playwright
+      - name: Install Playwright (with system deps)
         run: uv run python -m playwright install --with-deps
 
       - name: Install xvfb
@@ -40,10 +45,10 @@ jobs:
         run: |
           echo "$XHS_COOKIES_B64" | base64 -d > $RUNNER_TEMP/xhs_cookies.json
           test -s $RUNNER_TEMP/xhs_cookies.json
-          echo "Cookie file ready:"
+          echo "Cookie head preview:"
           head -n 5 $RUNNER_TEMP/xhs_cookies.json
 
-      - name: Gentle crawl
+      - name: Gentle crawl (uses throttle_xhs.py)
         env:
           XHS_COOKIES_PATH: ${{ runner.temp }}/xhs_cookies.json
           XHS_SAVE: sqlite
@@ -59,3 +64,12 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           uv run python ingest_to_supabase.py
+
+      # 可选：把 sqlite 产物打包下载，便于验证
+      - name: Upload sqlite artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlite_tables
+          path: schema/sqlite_tables.db
+          if-no-files-found: ignore
