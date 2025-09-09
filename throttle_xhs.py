@@ -22,8 +22,11 @@ def run_one_keyword(kw: str, max_items: int = None) -> bool:
     ]
     if COOKIES_PATH:
         args += ["--cookies", COOKIES_PATH]
+
     if max_items:
-        args += ["--start", "0", "--end", str(max_items)]  # MediaCrawler 支持 start/end
+        # 传给 main.py 一个不存在的参数会报错，所以这里不用。
+        # 改用环境变量控制，MediaCrawler 支持 limit
+        os.environ["XHS_SPIDER_LIMIT"] = str(max_items)
 
     print("CMD:", " ".join(args))
     ret = subprocess.run(args)
@@ -36,7 +39,7 @@ if __name__ == "__main__":
 
     for kw in KEYWORDS:
         success = run_one_keyword(kw, args.max_items)
-        sleep_time = random.randint(5, 10)  # 测试时缩短
+        sleep_time = random.randint(5, 10)
         print(f"[{kw}] done={success}, sleep {sleep_time}s…")
         time.sleep(sleep_time)
     print("Gentle crawl finished.")
