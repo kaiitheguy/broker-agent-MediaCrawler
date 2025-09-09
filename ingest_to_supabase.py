@@ -28,7 +28,7 @@ for r in rows:
     payload.append({
         "note_id": r[0],
         "title": r[1],
-        "desc": r[2],
+        "note_desc": r[2],
         "liked_count": int(r[3]) if r[3] else 0,
         "collected_count": int(r[4]) if r[4] else 0,
         "comment_count": int(r[5]) if r[5] else 0,
