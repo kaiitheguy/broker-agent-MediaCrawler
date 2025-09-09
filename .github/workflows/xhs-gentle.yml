@@ -47,21 +47,28 @@ jobs:
           test -s $RUNNER_TEMP/xhs_cookies.json
           echo "Cookie head preview:"
           head -n 5 $RUNNER_TEMP/xhs_cookies.json
-
+      
       - name: Verify proxy works
-        if: ${{ secrets.XHS_PROXY_URL != '' }}
         env:
           XHS_PROXY_URL: ${{ secrets.XHS_PROXY_URL }}
         run: |
+          if [ -z "$XHS_PROXY_URL" ]; then
+            echo "No proxy secret provided; skip proxy check."
+            exit 0
+          fi
+          echo "Proxy: $XHS_PROXY_URL"
           cat > check_proxy.py <<'PY'
-          import os, requests
-          p = os.environ["XHS_PROXY_URL"]
+          import os, requests, sys
+          p = os.environ.get("XHS_PROXY_URL", "")
+          if not p:
+              print("Proxy not set; skipping.")
+              sys.exit(0)
           proxies = {"http": p, "https": p}
-          ip = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=15).json()["ip"]
-          print("Proxy egress IP:", ip)
+          r = requests.get("https://api.ipify.org?format=json", proxies=proxies, timeout=15)
+          r.raise_for_status()
+          print("Egress IP:", r.json().get("ip"))
           PY
           uv run python check_proxy.py
-
 
       - name: Gentle crawl (localized env + proxy)
         env:
