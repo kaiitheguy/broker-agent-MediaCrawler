@@ -46,7 +46,7 @@ jobs:
       - name: Fetch proxy IP from KDL API
         id: fetch_proxy
         run: |
-          python <<'PY'
+          uv run python <<'PY'
           import requests, time, hashlib, os
           order_id = "995738837791666"
           secret_key = "4n7d07j8v1oyaxvlv08e36o5p3zh2odw"
@@ -57,10 +57,10 @@ jobs:
           resp = requests.get(url, timeout=10)
           ip = resp.text.strip()
           print("Got proxy:", ip)
-          # 写入 GitHub 环境变量
           with open(os.environ["GITHUB_ENV"], "a") as f:
               f.write(f"XHS_PROXY_ENDPOINT={ip}\n")
           PY
+
 
       - name: Gentle crawl (localized env + proxy)
         env:
